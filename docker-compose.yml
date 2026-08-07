@@ -16,11 +16,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
-
-  # Runs once, initiates the replica set, then exits.
-  # Needed because a single-node Mongo still has to be a replica set
-  # for multi-document transactions to work (used later for the
-  # last-seat race condition fix).
   mongo-init:
     image: mongo:7
     depends_on:
@@ -104,12 +99,6 @@ services:
       - ES_NODE=http://elasticsearch:9200
     ports:
       - "3000:3000"
-
-  # --- added in a later step, once the frontend exists ---
-  # web:
-  #   build: ./event-hubFE
-  #   ports:
-  #     - "5173:5173"
 
 volumes:
   mongo-data:
