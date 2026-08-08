@@ -16,6 +16,19 @@ export function requireAuth(req, res, next) {
   }
 }
 
+export function optionalAuth(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) {
+    return next();
+  }
+
+  try {
+    req.auth = verifyToken(header.slice('Bearer '.length));
+  } catch {
+  }
+  next();
+}
+
 export function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.auth || !roles.includes(req.auth.role)) {

@@ -1,5 +1,6 @@
 import { ApiError } from '../utils/ApiError.js';
 
+
 export function validate(schema, source = 'body') {
   return (req, res, next) => {
     const result = schema.safeParse(req[source]);
@@ -10,7 +11,12 @@ export function validate(schema, source = 'body') {
       }));
       return next(ApiError.badRequest('Validation failed', { details }));
     }
-    req[source] = result.data;
+    if (source === 'query') {
+      Object.keys(req.query).forEach((key) => delete req.query[key]);
+      Object.assign(req.query, result.data);
+    } else {
+      req[source] = result.data;
+    }
     next();
   };
 }

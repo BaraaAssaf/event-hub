@@ -30,6 +30,10 @@ export class ApiError extends Error {
   static unprocessable(message, opts) {
     return new ApiError(422, message, opts);
   }
+
+  static serviceUnavailable(message, opts) {
+    return new ApiError(503, message, opts);
+  }
 }
 
 function defaultCodeFor(statusCode) {
@@ -40,6 +44,8 @@ function defaultCodeFor(statusCode) {
     404: 'NOT_FOUND',
     409: 'CONFLICT',
     422: 'UNPROCESSABLE_ENTITY',
+    429: 'RATE_LIMITED',
+    503: 'SERVICE_UNAVAILABLE',
   };
   return map[statusCode] || 'INTERNAL_ERROR';
 }

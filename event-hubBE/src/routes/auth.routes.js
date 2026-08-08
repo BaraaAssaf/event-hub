@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { register, login, me } from '../controllers/auth.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
-import { validate } from '../middlewares/validate.js';
+import { authLimiter } from '../middlewares/rateLimit.middleware.js';
+import { validate } from '../middlewares/validate.middleware.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 import { registerSchema, loginSchema } from '../validators/auth.validator.js';
 
 const router = Router();
@@ -45,7 +47,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/register', validate(registerSchema), register);
+router.post('/register', authLimiter, validate(registerSchema), asyncHandler(register));
 
 /**
  * @openapi
@@ -79,7 +81,7 @@ router.post('/register', validate(registerSchema), register);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/login', validate(loginSchema), login);
+router.post('/login', authLimiter, validate(loginSchema), asyncHandler(login));
 
 /**
  * @openapi
@@ -106,6 +108,6 @@ router.post('/login', validate(loginSchema), login);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/me', requireAuth, me);
+router.get('/me', requireAuth, asyncHandler(me));
 
 export default router;
