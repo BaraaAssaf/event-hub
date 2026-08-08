@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
-import { esStatus } from '../config/es.js';
+import { pingElasticsearch } from '../config/es.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
 
@@ -29,13 +30,16 @@ const router = Router();
  *                 mongo: { type: string, example: connected }
  *                 elasticsearch: { type: string, example: connected }
  */
-router.get('/health', (req, res) => {
-  const mongoState = mongoose.connection.readyState; // 1 = connected
-  res.json({
-    status: 'ok',
-    mongo: mongoState === 1 ? 'connected' : 'disconnected',
-    elasticsearch: esStatus.available ? 'connected' : 'unavailable',
-  });
-});
+router.get(
+  '/health',
+  asyncHandler(async (req, res) => {
+    const mongoState = mongoose.connection.readyState; // 1 = connected
+    res.json({
+      status: 'ok',
+      mongo: mongoState === 1 ? 'connected' : 'disconnected',
+      elasticsearch: (await pingElasticsearch()) ? 'connected' : 'unavailable',
+    });
+  })
+);
 
 export default router;
