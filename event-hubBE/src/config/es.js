@@ -5,6 +5,16 @@ export const esClient = new Client({ node: env.esNode });
 
 export const esStatus = { available: false };
 
+export async function pingElasticsearch({ timeoutMs = 1500 } = {}) {
+  try {
+    await esClient.ping({}, { requestTimeout: timeoutMs, maxRetries: 0 });
+    esStatus.available = true;
+  } catch {
+    esStatus.available = false;
+  }
+  return esStatus.available;
+}
+
 export async function connectElasticsearch({ retries = 15, delayMs = 2000 } = {}) {
   for (let attempt = 1; attempt <= retries; attempt += 1) {
     try {
