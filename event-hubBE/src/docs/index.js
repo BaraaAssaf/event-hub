@@ -3,6 +3,7 @@ import { userSchemas } from './user.docs.js';
 import { venueSchemas } from './venue.docs.js';
 import { eventSchemas } from './event.docs.js';
 import { registrationSchemas } from './registration.docs.js';
+import { statsSchemas } from './stats.docs.js';
 
 export const schemas = {
   ...commonSchemas,
@@ -10,4 +11,5 @@ export const schemas = {
   ...venueSchemas,
   ...eventSchemas,
   ...registrationSchemas,
+  ...statsSchemas,
 };

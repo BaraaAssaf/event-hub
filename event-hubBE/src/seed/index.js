@@ -1,9 +1,26 @@
 import mongoose from 'mongoose';
 import { connectMongo } from '../config/db.js';
+import { connectElasticsearch } from '../config/es.js';
+import { Event } from '../models/Event.model.js';
+import { recreateEventsIndex, bulkIndexEvents } from '../search/event.search.js';
 import { seedUsers, DEFAULT_PASSWORD } from './user.seed.js';
 import { seedVenues } from './venue.seed.js';
 import { seedEvents } from './event.seed.js';
 import { seedRegistrations } from './registration.seed.js';
+
+
+async function buildSearchIndex() {
+  const esReady = await connectElasticsearch({ retries: 3 });
+  if (!esReady) {
+    console.warn('[seed] Elasticsearch unreachable — run "npm run reindex" once it is up');
+    return;
+  }
+
+  await recreateEventsIndex();
+  const events = await Event.find().populate('venue').populate('organizer');
+  await bulkIndexEvents(events);
+  console.log(`[seed] search index: ${events.length} event(s)`);
+}
 
 
 async function run() {
@@ -13,6 +30,8 @@ async function run() {
   const venues = await seedVenues();
   const events = await seedEvents(users, venues);
   await seedRegistrations(users, events);
+
+  await buildSearchIndex();
 
   console.log('\n[seed] done.\n');
   console.log(`Password for every account below: ${DEFAULT_PASSWORD}\n`);
