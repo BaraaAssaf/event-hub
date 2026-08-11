@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: event-hubFE/package-lock.json
+
+      - name: Install dependencies
+        working-directory: event-hubFE
+        run: npm ci
+
+      - name: Test
+        working-directory: event-hubFE
+        run: npm test
+
+      - name: Build
+        working-directory: event-hubFE
+        run: npm run build
+
+  backend:
+    runs-on: ubuntu-latest
+
+    env:
+      MONGO_URI: mongodb://localhost:27017/eventhub?directConnection=true
+      ES_NODE: http://localhost:9200
+      JWT_SECRET: ci-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: event-hubBE/package-lock.json
+
+      - name: Start MongoDB and Elasticsearch
+        run: docker compose up -d mongo mongo-init elasticsearch
+
+      - name: Install dependencies
+        working-directory: event-hubBE
+        run: npm ci
+
+      - name: Wait for MongoDB replica set
+        run: |
+          until docker compose exec -T mongo mongosh --quiet --eval "rs.status().ok" | grep -q 1; do
+            echo "Waiting for MongoDB replica set..."
+            sleep 3
+          done
+
+      - name: Wait for Elasticsearch
+        run: |
+          until curl -sf http://localhost:9200/_cluster/health > /dev/null; do
+            echo "Waiting for Elasticsearch..."
+            sleep 3
+          done
+
+      - name: Seed database
+        working-directory: event-hubBE
+        run: npm run seed
+
+      - name: Test
+        working-directory: event-hubBE
+        run: npm test
