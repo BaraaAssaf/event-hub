@@ -57,10 +57,20 @@ export const eventSchemas = {
         minLength: 10,
         example: 'A hands-on introduction to building APIs with Node.js and Express.',
       },
-      startsAt: { type: 'string', format: 'date-time', example: '2026-09-01T18:00:00.000Z' },
+      startsAt: {
+        type: 'string',
+        format: 'date-time',
+        description: 'Must be in the future',
+        example: '2026-09-01T18:00:00.000Z',
+      },
       price: { type: 'number', minimum: 0, example: 29.99 },
       venue: { type: 'string', description: 'Venue id', example: '665f1c2e8f1b2c0012a3b457' },
-      categories: { type: 'array', items: { type: 'string' }, example: ['tech', 'workshop'] },
+      categories: {
+        type: 'array',
+        items: { type: 'string' },
+        example: ['tech', 'workshop'],
+        description: 'Free-form tags (max 20). A comma-separated string is also accepted.',
+      },
     },
   },
   OrganizerEvent: {

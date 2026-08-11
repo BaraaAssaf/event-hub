@@ -75,13 +75,34 @@ async function loadOwnedEvent(eventId, userId) {
   return event;
 }
 
+function normalizeCategories(categories) {
+  if (!Array.isArray(categories)) return categories;
+  const seen = new Set();
+  const result = [];
+  for (const raw of categories) {
+    const value = String(raw).trim();
+    if (!value) continue;
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(value);
+  }
+  return result;
+}
+
 export async function createEvent(data, organizerId) {
   const venue = await Venue.findById(data.venue);
   if (!venue) {
     throw ApiError.notFound('Venue not found');
   }
 
-  const event = await Event.create({ ...data, organizer: organizerId });
+  const payload = {
+    ...data,
+    categories: normalizeCategories(data.categories ?? []),
+    organizer: organizerId,
+  };
+
+  const event = await Event.create(payload);
   await event.populate([{ path: 'venue' }, { path: 'organizer', select: ORGANIZER_FIELDS }]);
 
   await indexEvent(event);
@@ -104,7 +125,12 @@ export async function updateEvent(eventId, data, userId) {
     }
   }
 
-  Object.assign(event, data);
+  const patch = { ...data };
+  if (patch.categories !== undefined) {
+    patch.categories = normalizeCategories(patch.categories);
+  }
+
+  Object.assign(event, patch);
   await event.save();
   await event.populate([{ path: 'venue' }, { path: 'organizer', select: ORGANIZER_FIELDS }]);
 

@@ -7,17 +7,39 @@ const booleanish = z
   .transform((value) => value === 'true')
   .optional();
 
+const futureDate = z.coerce.date().refine((value) => value.getTime() > Date.now(), {
+  message: 'startsAt must be in the future',
+});
+
+const categoriesField = z.preprocess((value) => {
+  if (value == null || value === '') return [];
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+  }
+  return value;
+}, z.array(z.string().trim().min(1).max(50)).max(20));
+
 export const createEventSchema = z.object({
   title: z.string().trim().min(3).max(200),
   description: z.string().trim().min(10).max(5000),
-  startsAt: z.coerce.date(),
+  startsAt: futureDate,
   price: z.coerce.number().min(0),
   venue: objectId,
-  categories: z.array(z.string().trim().min(1).max(50)).max(20).default([]),
+  categories: categoriesField.default([]),
 });
 
-export const updateEventSchema = createEventSchema
-  .partial()
+export const updateEventSchema = z
+  .object({
+    title: z.string().trim().min(3).max(200).optional(),
+    description: z.string().trim().min(10).max(5000).optional(),
+    startsAt: futureDate.optional(),
+    price: z.coerce.number().min(0).optional(),
+    venue: objectId.optional(),
+    categories: categoriesField.optional(),
+  })
   .refine((data) => Object.keys(data).length > 0, 'At least one field must be provided');
 
 export const listEventsQuerySchema = z.object({

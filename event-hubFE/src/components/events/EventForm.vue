@@ -50,13 +50,30 @@ const suggestions = ref([]);
 
 function completeCategory({ query }) {
   const term = query.trim().toLowerCase();
+  const selected = new Set(form.categories.map((category) => category.toLowerCase()));
   const matches = props.categorySuggestions.filter(
-    (option) => option.toLowerCase().includes(term) && !form.categories.includes(option)
+    (option) => option.toLowerCase().includes(term) && !selected.has(option.toLowerCase())
   );
-  suggestions.value = term && !matches.includes(term) ? [term, ...matches] : matches;
+  const alreadySuggested = matches.some((option) => option.toLowerCase() === term);
+  suggestions.value = term && !alreadySuggested ? [query.trim(), ...matches] : matches;
+}
+
+function onCategoryEnter(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const value = String(event.target?.value ?? '').trim();
+  if (!value) return;
+
+  const exists = form.categories.some((category) => category.toLowerCase() === value.toLowerCase());
+  if (!exists) form.categories.push(value);
+
+  if (event.target) event.target.value = '';
+  suggestions.value = [];
 }
 
 const selectedVenue = computed(() => props.venues.find((venue) => venue._id === form.venue));
+const minStartsAt = new Date();
 
 function validate() {
   Object.keys(errors).forEach((key) => delete errors[key]);
@@ -65,6 +82,8 @@ function validate() {
   if (form.description.trim().length < 10)
     errors.description = 'Description must be at least 10 characters';
   if (!form.startsAt) errors.startsAt = 'Pick a start date and time';
+  else if (form.startsAt.getTime() <= Date.now())
+    errors.startsAt = 'Start date must be in the future';
   if (!form.venue) errors.venue = 'Choose a venue';
   if (form.price === null || form.price < 0) errors.price = 'Price cannot be negative';
 
@@ -79,7 +98,9 @@ function submit() {
     startsAt: form.startsAt.toISOString(),
     price: form.price,
     venue: form.venue,
-    categories: form.categories.map((category) => category.trim()).filter(Boolean),
+    categories: form.categories
+      .map((category) => (typeof category === 'string' ? category : String(category ?? '')).trim())
+      .filter(Boolean),
   });
 }
 </script>
@@ -115,6 +136,7 @@ function submit() {
           hourFormat="24"
           showIcon
           dateFormat="yy-mm-dd"
+          :minDate="minStartsAt"
           :invalid="Boolean(errors.startsAt)"
           fluid
         />
@@ -173,7 +195,9 @@ function submit() {
         :typeahead="false"
         placeholder="Type and press enter"
         @complete="completeCategory"
+        @keydown.enter="onCategoryEnter"
       />
+      <small class="muted">Type a category and press Enter to add it. Click a chip to remove.</small>
     </div>
 
     <div class="row">
