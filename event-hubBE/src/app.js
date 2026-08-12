@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env.js';
@@ -18,6 +19,7 @@ export function createApp() {
 
   app.use(cors({ origin: env.clientOrigin, credentials: true }));
   app.use(express.json({ limit: '100kb' }));
+  app.use(cookieParser());
   app.use(morgan(env.nodeEnv === 'development' ? 'dev' : 'combined'));
 
   app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { connectMongo } from '../config/db.js';
 import { connectElasticsearch } from '../config/es.js';
+import { User } from '../models/User.model.js';
 import { Event } from '../models/Event.model.js';
 import { recreateEventsIndex, bulkIndexEvents } from '../search/event.search.js';
 import { seedUsers, DEFAULT_PASSWORD } from './user.seed.js';
@@ -22,17 +23,7 @@ async function buildSearchIndex() {
   console.log(`[seed] search index: ${events.length} event(s)`);
 }
 
-
-async function run() {
-  await connectMongo();
-
-  const users = await seedUsers();
-  const venues = await seedVenues();
-  const events = await seedEvents(users, venues);
-  await seedRegistrations(users, events);
-
-  await buildSearchIndex();
-
+function printCredentials() {
   console.log('\n[seed] done.\n');
   console.log(`Password for every account below: ${DEFAULT_PASSWORD}\n`);
   console.log('  organizer : organizer@eventhub.dev   (owns Intro to Node.js, Advanced MongoDB, Elasticsearch Deep Dive, Vue 3 Workshop)');
@@ -40,6 +31,26 @@ async function run() {
   console.log('  attendee  : attendee@eventhub.dev');
   console.log('  attendee  : attendee2@eventhub.dev');
   console.log('  attendee  : attendee3@eventhub.dev');
+}
+
+
+async function run() {
+  await connectMongo();
+
+  const existingUsers = await User.countDocuments();
+  if (existingUsers > 0) {
+    console.log(`[seed] skipped — database already has ${existingUsers} user(s)`);
+    await mongoose.disconnect();
+    process.exit(0);
+  }
+
+  const users = await seedUsers();
+  const venues = await seedVenues();
+  const events = await seedEvents(users, venues);
+  await seedRegistrations(users, events);
+
+  await buildSearchIndex();
+  printCredentials();
 
   await mongoose.disconnect();
   process.exit(0);

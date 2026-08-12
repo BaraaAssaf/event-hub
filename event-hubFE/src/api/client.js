@@ -1,6 +1,5 @@
 
 const BASE_URL = '/api';
-const TOKEN_KEY = 'eventhub.token';
 
 export class ApiError extends Error {
   constructor(status, { message, code, details } = {}) {
@@ -17,29 +16,7 @@ export class ApiError extends Error {
   }
 }
 
-let token = readStoredToken();
 let unauthorizedHandler = null;
-
-function readStoredToken() {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export function getToken() {
-  return token;
-}
-
-export function setToken(next) {
-  token = next || null;
-  try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
-  } catch {
-  }
-}
 
 export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = handler;
@@ -56,15 +33,15 @@ function buildQuery(params) {
   return qs ? `?${qs}` : '';
 }
 
-export async function request(path, { method = 'GET', body, query, auth = true, signal } = {}) {
+export async function request(path, { method = 'GET', body, query, auth = true, signal, handleUnauthorized = true } = {}) {
   let response;
   try {
     response = await fetch(`${BASE_URL}${path}${buildQuery(query)}`, {
       method,
       signal,
+      credentials: 'include',
       headers: {
         ...(body ? { 'Content-Type': 'application/json' } : {}),
-        ...(auth && token ? { Authorization: `Bearer ${token}` } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
@@ -81,7 +58,7 @@ export async function request(path, { method = 'GET', body, query, auth = true, 
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    if (response.status === 401 && auth && token) {
+    if (response.status === 401 && auth && handleUnauthorized) {
       unauthorizedHandler?.();
     }
     throw new ApiError(response.status, payload?.error ?? {});

@@ -23,7 +23,13 @@ export function resolveNavigation(to, session) {
 export function installGuards(router) {
   router.beforeEach(async (to) => {
     const auth = useAuthStore();
-    await auth.ensureSession();
+
+    if (to.meta?.requiresAuth) {
+      await auth.revalidateSession();
+    } else {
+      await auth.ensureSession();
+    }
+
     return resolveNavigation(to, {
       isAuthenticated: auth.isAuthenticated,
       role: auth.user?.role,

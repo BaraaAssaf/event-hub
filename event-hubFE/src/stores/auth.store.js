@@ -1,11 +1,9 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import * as authApi from '@/api/auth.api.js';
-import { getToken, setToken } from '@/api/client.js';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null);
-  const token = ref(getToken());
   const ready = ref(false);
 
   let sessionPromise = null;
@@ -15,32 +13,22 @@ export const useAuthStore = defineStore('auth', () => {
 
   function apply(session) {
     user.value = session.user;
-    token.value = session.token;
-    setToken(session.token);
     ready.value = true;
     sessionPromise = Promise.resolve(session.user);
   }
 
   function clear() {
     user.value = null;
-    token.value = null;
-    setToken(null);
     ready.value = true;
     sessionPromise = Promise.resolve(null);
   }
 
   async function loadSession() {
-    if (!token.value) {
-      ready.value = true;
-      return null;
-    }
     try {
       const { user: current } = await authApi.me();
       user.value = current;
     } catch {
       user.value = null;
-      token.value = null;
-      setToken(null);
     } finally {
       ready.value = true;
     }
@@ -49,6 +37,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   function ensureSession() {
     sessionPromise ??= loadSession();
+    return sessionPromise;
+  }
+
+  async function revalidateSession() {
+    sessionPromise = loadSession();
     return sessionPromise;
   }
 
@@ -62,17 +55,21 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value;
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await authApi.logout();
+    } catch {
+    }
     clear();
   }
 
   return {
     user,
-    token,
     ready,
     isAuthenticated,
     isOrganizer,
     ensureSession,
+    revalidateSession,
     login,
     register,
     logout,

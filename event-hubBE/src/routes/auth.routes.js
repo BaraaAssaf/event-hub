@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, me } from '../controllers/auth.controller.js';
+import { register, login, logout, me } from '../controllers/auth.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 import { authLimiter } from '../middlewares/rateLimit.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
@@ -82,6 +82,18 @@ router.post('/register', authLimiter, validate(registerSchema), asyncHandler(reg
  *               $ref: '#/components/schemas/Error'
  */
 router.post('/login', authLimiter, validate(loginSchema), asyncHandler(login));
+
+/**
+ * @openapi
+ * /auth/logout:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Clear the auth cookie
+ *     responses:
+ *       204:
+ *         description: Logged out
+ */
+router.post('/logout', asyncHandler(logout));
 
 /**
  * @openapi

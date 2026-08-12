@@ -8,6 +8,10 @@ export function register(details) {
   return request('/auth/register', { method: 'POST', body: details, auth: false });
 }
 
+export function logout() {
+  return request('/auth/logout', { method: 'POST', auth: false });
+}
+
 export function me() {
-  return request('/auth/me');
+  return request('/auth/me', { handleUnauthorized: false });
 }
